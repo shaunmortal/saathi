@@ -7,7 +7,7 @@ import json, math, pathlib, sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 # Run settings: python tools/make_world.py --mode=baseline --perception=vision --goal=Lab --unmapped=1 --out=../../out/x --every=0.1 --until=60
-RUN = dict(mode="saathi", perception="gt", goal="Radiology", out="../../out/run", every="0.1", until="60", unmapped="0", fall="0", lost="0", report="60", robots="1")
+RUN = dict(mode="saathi", perception="gt", goal="Radiology", out="../../out/run", every="0.1", until="60", unmapped="0", fall="0", lost="0", report="60", robots="1", quit="1")
 RUN.update(a[2:].split("=", 1) for a in sys.argv[1:] if a.startswith("--"))
 MOTIONS = ROOT / "motions"
 

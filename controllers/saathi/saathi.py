@@ -25,6 +25,7 @@ REPORT = float(args.get("report", 60))
 ROBOT = int(args.get("robot", 1))            # which Saathi this is (Saathi Parivaar runs two)
 WORLD = ROBOT == 1                            # only Saathi-1's controller moves the crowd and the scripted people
 CHASE_ON = args.get("chase", "1") == "1"      # the chase camera follows this Saathi
+QUIT = args.get("quit", "1") == "1"            # --quit=0: write the summary but keep Webots open (GUI demo)
 LIVE = args.get("live") == "1"                # take spoken commands from the voice agent (tools/voice.py) instead of a script
 if LIVE:
     REPORT = float("inf")                     # a lost child is reported by voice, not at a fixed time
@@ -708,4 +709,6 @@ while bot.step(DT_MS) != -1:
                        localization_error_p90=round(float(np.percentile(loc_err, 90)), 3) if loc_err else None,
                        **({"lost": lost_summary()} if LOST else {}))
         json.dump(summary, open(os.path.join(OUT, "summary.json"), "w"), indent=1)
-        bot.simulationQuit(0)
+        if QUIT:
+            bot.simulationQuit(0)
+        UNTIL = float("inf")  # keep stepping, say nothing more
