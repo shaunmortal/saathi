@@ -365,30 +365,7 @@
    "door_open": 0.75
   }
  },
- "unmapped": [
-  [
-   "wet floor sign",
-   [
-    -4.6,
-    0.3
-   ],
-   [
-    0.45,
-    0.5
-   ]
-  ],
-  [
-   "cardboard box",
-   [
-    2.0,
-    3.1
-   ],
-   [
-    0.7,
-    0.55
-   ]
-  ]
- ],
+ "unmapped": [],
  "goals": {
   "Radiology": [
    5.0,

@@ -706,7 +706,7 @@ while bot.step(DT_MS) != -1:
         ride_status = "In the lift: doors closing" if u < 1.5 else f"In the lift: going {'up to the first floor' if floor == 1 else 'down to the ground floor'}" if u < 7.5 else "In the lift: doors opening"
         if done_ride:
             set_floor(3 - floor)
-            lift_floor, lift_state, goal = floor, None, final_goal
+            lift_floor, lift_state, goal, chase_pos = floor, None, final_goal, None  # chase camera snaps behind Saathi instead of easing through the wall
             brain.path, brain.next_plan = None, 0.0
             say(t, f"{'Pehli manzil' if floor == 2 else 'Bhootal'} aa gaya. {GOAL} is taraf hai, chaliye")
         lift_t.setSFVec3f([F2["lift"]["cabin"][0], F2["lift"]["cabin"][1], z])
@@ -782,8 +782,8 @@ while bot.step(DT_MS) != -1:
         look = np.array([x, y]) + 0.8 * fwd
         cam_z, cam_h = me.getPosition()[2] + 2.2, 2.2 - 0.6
         if lift_state == "ride":  # stand in the lobby facing the doors: on the departure floor while they close, on the arrival floor as they open
-            chase_pos, look = np.array([5.4, 1.5]), np.array([7.5, 1.5])
-            cam_z, cam_h = (0.0 if (floor == 1) == (t - lift_t0 < 4.5) else Z2) + 1.5, 1.5 - 0.9
+            chase_pos, look = np.array([4.0, 1.5]), np.array([7.5, 1.5])
+            cam_z, cam_h = (0.0 if (floor == 1) == (t - lift_t0 < 4.5) else Z2) + 1.9, 1.9 - 1.1
         ch_t.setSFVec3f([float(chase_pos[0]), float(chase_pos[1]), cam_z])
         ch_r.setSFRotation(yaw_pitch_rotation(math.atan2(look[1] - chase_pos[1], look[0] - chase_pos[0]),
                                               math.atan2(cam_h, float(np.linalg.norm(look - chase_pos)))))

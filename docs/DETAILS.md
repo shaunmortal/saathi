@@ -214,6 +214,13 @@ and Saathi on the team's rover: camera + depth camera on a mast, 360° LiDAR, IM
 ### Run
 
 ```sh
+tools/demo.sh                                   # GUI: --floors=2 world (lift + first floor), --tour=Pharmacy,Blood Bank,Lab, --quit=0 keeps Webots open
+tools/run_webots.sh NAME --perception=vision --floors=2 "--tour=Pharmacy,Blood Bank,Lab" --fall=25 --until=240   # headless, out/NAME
+```
+
+The two-floor world is opt-in (`--floors=2`): the default world and `tools/bench.py` are unchanged.
+
+```sh
 # Webots: stable R2025a does not start on macOS 27; use the nightly copied to ~/Applications (any master build after 3 Oct 2026).
 ~/Applications/Webots.app/Contents/MacOS/webots worlds/opd.wbt                                   # GUI
 ~/Applications/Webots.app/Contents/MacOS/webots --batch --minimize --mode=fast worlds/opd.wbt     # record a run into out/run

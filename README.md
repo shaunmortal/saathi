@@ -108,6 +108,27 @@
 
 <br>
 
+## 🏥 Poora hospital: two floors, one lift
+
+**"Blood bank kahan hai?"** It is upstairs. Saathi drives to the lift lobby, calls the lift, rides up, and walks you there. Then back down to the Lab. Every department by voice: Registration, Pharmacy, Radiology, Lab, Emergency on the ground floor; Blood Bank, ICU, OT, Wards and the Nurse Station on the first.
+
+<table>
+<tr>
+<td width="50%" align="center">
+<img src="docs/lift.gif" alt="Saathi rides the lift to the first floor">
+<br><b>🛗 Takes the lift on its own</b><br><sub>Doors close, cabin travels, doors open upstairs. The camera keeps seeing; the map switches floors.</sub>
+</td>
+<td width="50%" align="center">
+<img src="docs/floor2.gif" alt="First floor: Blood Bank, Nurse Station, Wards, ICU, OT">
+<br><b>🩸 First floor: Blood Bank, ICU, OT, Wards</b><br><sub>A nurse at her station, visitors, a stretcher, stairs down. New floor, same brain.</sub>
+</td>
+</tr>
+</table>
+
+<p align="center"><sub>One run, on its own camera: Pharmacy → lift → Blood Bank → lift → Lab in 135 s, with a fall handled on the way. <code>tools/demo.sh</code> plays it live in Webots.</sub></p>
+
+<br>
+
 ## 👨‍👩‍👦 Saathi Parivaar: *ek yaad, kai aankhein*
 
 **"Mera beta kho gaya, laal t-shirt, chhota sa hai."** Every Saathi in the hospital answers from one shared memory. One stays with papa. One goes where the boy is **now**, not where he was seen.
@@ -268,8 +289,8 @@ Honest reading: one robot with memory finds the child in half the time. With a t
 | Criterion | Where to look |
 |---|---|
 | Innovation | [What is new here](#-what-is-new-here) · [Saathi Parivaar](#-saathi-parivaar-ek-yaad-kai-aankhein) |
+| Functional implementation | [Whole hospital](#-poora-hospital-two-floors-one-lift): one run, two floors, a lift, a fall, on its own camera |
 | Problem-solution fit | [The problem](#-the-problem-in-four-numbers) · Hindi first, built for Indian crowds and floors |
-| Functional implementation | Every GIF on this page is a real run · [Run it](#-run-it) |
 | Technical execution | [How it works](#-how-it-works) · [PS-01 proof](#-ps-01-every-line-with-proof) |
 | Impact | 14–15k patients a day at one hospital; 816 medical colleges, 714 district hospitals |
 | Usability | Voice in Hindi, walks at your pace, explains itself, stops for a fist |
@@ -292,10 +313,10 @@ Next      🌐 More Indian languages (Bhashini) · token/queue integration · st
 ## ▶️ Run it
 
 ```sh
-~/Applications/Webots.app/Contents/MacOS/webots worlds/opd.wbt        # the OPD hall; Saathi drives to Radiology
-.venv/bin/python tools/bench.py 200                                    # 200-crowd A/B, reproduces the numbers above
-.venv/bin/python tools/bench_lost.py 200                               # 200 lost children x 3 strategies x 1-3 robots
-.venv-brain/bin/python tools/voice.py                                  # talk to it in Hindi
+tools/demo.sh                                   # whole hospital, live: Pharmacy -> lift -> Blood Bank -> lift -> Lab, a box, a fall
+tools/live.sh && .venv-brain/bin/python tools/voice.py   # (two terminals) talk to it in Hindi: "Blood bank kahan hai?"
+.venv/bin/python tools/bench.py 200             # 200-crowd A/B, reproduces the numbers above
+.venv/bin/python tools/bench_lost.py 200        # 200 lost children x 3 strategies x 1-3 robots
 ```
 
 Setup, every command, methods, sources and honest limits: **[docs/DETAILS.md](docs/DETAILS.md)**
