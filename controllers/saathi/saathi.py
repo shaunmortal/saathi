@@ -507,7 +507,8 @@ last_status, last_event, chase_pos, nxt, k, boxes, arrived_at = "", -9.0, None, 
 my_r.setSFRotation([0, 0, 1, pose[2]])  # face the first goal at the start
 if args.get("calib"):  # drive test: 2 s forward, 2 s sideways (left), 2 s turning left; print where physics put the robot
     marks = []
-    while bot.step(DT_MS) != -1:
+    done = False
+while bot.step(DT_MS) != -1:
         t = bot.getTime()
         drive(*((0.3, 0, 0) if t < 2 else (0, 0.3, 0) if t < 4 else (0, 0, 0.6) if t < 6 else (0, 0, 0)))
         if not marks or t - marks[-1][0] >= 0.5:
@@ -702,7 +703,7 @@ while bot.step(DT_MS) != -1:
         nxt += EVERY
     if FIND and found is None:
         arrived_at = None
-    if t >= UNTIL or (arrived_at is not None and t > arrived_at + 3 and not LOST) or (LOST and lost.get("done_at") and t > lost["done_at"] + 3):
+    if not done and (t >= UNTIL or (arrived_at is not None and t > arrived_at + 3 and not LOST) or (LOST and lost.get("done_at") and t > lost["done_at"] + 3)):
         summary = dict(mode=MODE, perception=PERCEPTION, goal=GOAL, fall_detected=fall_seen is not None, found=[round(v, 2) for v in found] if FIND and found else None, arrived=arrived_at is not None, time=round(arrived_at or t, 2),
                        near_misses=metrics.near, conversation_cuts=metrics.cuts, unmapped_hits=sorted(unmapped_hit), min_dist=round(metrics.min_d, 3), safety_stops=metrics.stops,
                        localization_error_median=round(float(np.median(loc_err)), 3) if loc_err else None,
@@ -711,4 +712,4 @@ while bot.step(DT_MS) != -1:
         json.dump(summary, open(os.path.join(OUT, "summary.json"), "w"), indent=1)
         if QUIT:
             bot.simulationQuit(0)
-        UNTIL = float("inf")  # keep stepping, say nothing more
+        done = True  # --quit=0: keep stepping so the GUI stays open
