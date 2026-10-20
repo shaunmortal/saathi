@@ -507,8 +507,7 @@ last_status, last_event, chase_pos, nxt, k, boxes, arrived_at = "", -9.0, None, 
 my_r.setSFRotation([0, 0, 1, pose[2]])  # face the first goal at the start
 if args.get("calib"):  # drive test: 2 s forward, 2 s sideways (left), 2 s turning left; print where physics put the robot
     marks = []
-    done = False
-while bot.step(DT_MS) != -1:
+    while bot.step(DT_MS) != -1:
         t = bot.getTime()
         drive(*((0.3, 0, 0) if t < 2 else (0, 0.3, 0) if t < 4 else (0, 0, 0.6) if t < 6 else (0, 0, 0)))
         if not marks or t - marks[-1][0] >= 0.5:
@@ -518,6 +517,7 @@ while bot.step(DT_MS) != -1:
             bot.simulationQuit(0)
 loc_err = []
 events = open(os.path.join(OUT, "events.jsonl"), "w")
+done = False
 states = open(os.path.join(OUT, "states.jsonl"), "w")
 blackbox = open(os.path.join(OUT, "blackbox.jsonl"), "w")
 fall_log = open(os.path.join(OUT, "fall_truth.jsonl"), "w")
