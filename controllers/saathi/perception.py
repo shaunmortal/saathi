@@ -197,9 +197,11 @@ def box_points(depth, box, pose, f, lo, hi, pitch=0.1, cam_fwd=0.11, cam_h=1.005
     x0, y0, x1, y1 = (max(0, int(v)) for v in box)
     v, u = np.mgrid[y0:min(y1, H), x0:min(x1, W)]
     z = depth[y0:min(y1, H), x0:min(x1, W)].astype(np.float32)
+    finite = np.isfinite(z)
+    z = np.where(finite, z, 1.0)  # inf = nothing in range; stand-in keeps numpy quiet, masked out below
     xc, yc = (u - W / 2) * z / f, (v - H / 2) * z / f
     fwd, up = cam_fwd + z * math.cos(pitch) - yc * math.sin(pitch), cam_h - z * math.sin(pitch) - yc * math.cos(pitch)
-    keep = np.isfinite(z) & (up > lo) & (up < hi)
+    keep = finite & (up > lo) & (up < hi)
     x, y, th = pose
     f_, l_ = fwd[keep], -xc[keep]
     return np.stack([x + f_ * math.cos(th) - l_ * math.sin(th), y + f_ * math.sin(th) + l_ * math.cos(th)], 1)
