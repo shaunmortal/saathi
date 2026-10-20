@@ -130,7 +130,7 @@ found, sightings, scan_left, spot = None, [], 2 * math.pi, 0
 grid = Grid(scene["obstacles"])
 brain = Reflex(grid, social=(MODE == "saathi"))
 metrics = Metrics()
-eyes = None
+eyes = namer = None
 if PERCEPTION == "vision":
     from perception import Eyes, Namer, ObstacleMemory, depth_points, lidar_points
     eyes = Eyes(os.path.join(os.path.dirname(__file__), "..", "..", "models", "yolo11s.pt"), W, H, cam.getFov())
