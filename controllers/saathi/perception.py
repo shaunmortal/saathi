@@ -111,6 +111,7 @@ def depth_points(depth, person_boxes, pose, f, pitch=0.1, cam_fwd=0.11, cam_h=1.
     v, u = np.mgrid[0:H:step, 0:W:step]
     z = depth[::step, ::step].astype(np.float32)
     keep = np.isfinite(z) & (z > 0.2) & (z < max_d)
+    z = np.where(keep, z, 1.0)  # inf where nothing is in range; any finite stand-in keeps numpy quiet, keep masks it out
     for x0, y0, x1, y1 in person_boxes:  # people are the tracker's job
         mx, my = 0.1 * (x1 - x0), 0.05 * (y1 - y0)
         keep &= ~((u >= x0 - mx) & (u <= x1 + mx) & (v >= y0 - my) & (v <= y1 + my))
