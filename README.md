@@ -1,4 +1,33 @@
-# Saathi in Webots: OPD hall simulation
+# Saathi: a crowd-aware hospital OPD robot that remembers people
+
+**Hack in Hills '26, PS-01 Vision-Based Autonomous Robot (simulated).** Team Glitch. Built and tested in Webots on a MacBook Air M1 (8 GB).
+
+![Saathi driving through the OPD hall: camera view with YOLO11 boxes, LiDAR, planner and status](docs/dashboard.gif)
+
+An Indian district-hospital OPD hall: thousands of first-time patients a day, most of them alone, and 7 in 10 need a human to find their way.
+Saathi is a service robot for that hall. It walks a patient to Radiology without cutting through crowds or conversations, reads the
+OPD slip, talks in Hindi, notices a fall and stays with the patient until a nurse comes. Several Saathis share one memory of people
+(clothes and height, never faces), so when a father says "mera beta kho gaya, laal t-shirt", the team estimates where the child is **now** and goes there.
+
+## What works today (every number below is produced by the scripts in `tools/`)
+
+| Capability | Proof |
+|---|---|
+| Crowd-aware navigation (A* + social costs: personal space, conversation groups, keep-left) | 200 seeded crowds: 199/200 arrived vs 185/200 for a plain planner, near-misses 1.0 vs 3.8 per trip, 0% trips cutting a conversation (`out/bench/summary.json`) |
+| Perception on the robot's own camera + depth + LiDAR | YOLO11 + ByteTrack on rendered frames; unmapped cardboard box found at 15 s and avoided (`docs/obstacles.jpg`) |
+| Open-vocabulary goals | "find: dustbin" found 7.5 m away with YOLOE, arrived in 12 s |
+| Fall detection with second opinion | YOLOE "person lying on the floor" + Qwen3.5-2B VLM describes the scene in 4.9 s, alert to nurse station, robot stays (`docs/fall.jpg`) |
+| Shared people memory, lost-child search | 24/24 correct by eye over 96 people seen in 54 frames (`docs/clip_search.jpg`); 200-seed benchmark: memory roughly halves search time for one robot (`out/bench_lost/summary.json`) |
+| Hindi voice, offline | Whisper large-v3-turbo (MLX) + phrasebook + macOS Lekha voice; self-test 5/5 understood, about 3 s each |
+| Safety | 0.6 m hard stop in the controller that no planner, LLM or voice command can override; black-box decision log for every run |
+
+![200-crowd A/B: Saathi vs baseline](docs/ab_chart.png)
+
+Status: Round 2 prototype. Everything is simulation; see "What is real and what is simplified" below.
+
+---
+
+## The simulation
 
 A district-hospital OPD hall (Hindi + English signage, token display, pharmacy queue, waiting chairs) with animated people,
 and Saathi on the team's rover: camera + depth camera on a mast, 360° LiDAR, IMU, mecanum-style wheels and a face screen.
