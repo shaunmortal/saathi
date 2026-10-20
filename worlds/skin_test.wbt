@@ -1,0 +1,94 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/303f6bc2af6b241098d2773cd3f9ae507187f2ef/projects/humans/skin_animated_humans/protos/CharacterSkin.proto"
+
+WorldInfo {
+  basicTimeStep 32
+}
+Viewpoint {
+  orientation 0 0 1 0
+  position -6 0 1.5
+}
+Background {
+  skyColor [
+    0.85 0.88 0.9
+  ]
+}
+DirectionalLight {
+  direction 0.3 0.5 -1
+  intensity 2
+}
+Solid {
+  translation 0 0 -0.005
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.8 0.8 0.8
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 20 20 0.01
+      }
+    }
+  ]
+  name "floor"
+}
+DEF H1 Robot {
+  children [
+    CharacterSkin {
+      name "skin1"
+      model "Robert"
+    }
+  ]
+  name "H1"
+  controller "bvh_animation"
+  controllerArgs [
+    "-d"
+    "skin1"
+    "-f"
+    "/Users/Happy/Desktop/VISION/saathi_sim/motions/walk.bvh"
+    "-l"
+  ]
+}
+DEF H2 Robot {
+  translation 0 1.5 0
+  children [
+    CharacterSkin {
+      name "skin2"
+      model "Sandra"
+    }
+  ]
+  name "H2"
+  controller "bvh_animation"
+  controllerArgs [
+    "-d"
+    "skin2"
+    "-f"
+    "/Users/Happy/Desktop/VISION/saathi_sim/motions/walk.bvh"
+    "-l"
+    "-s"
+    "1000000"
+  ]
+}
+Robot {
+  translation -5 0.7 1.2
+  rotation 0 1 0 0.12
+  children [
+    Camera {
+      name "cam"
+      width 960
+      height 540
+      fieldOfView 0.9
+      antiAliasing TRUE
+    }
+  ]
+  name "cctv"
+  controller "cctv"
+  controllerArgs [
+    "--out=/Users/Happy/Desktop/VISION/saathi_sim/out/skintest"
+    "--every=1"
+    "--until=4"
+  ]
+  supervisor TRUE
+}

@@ -1,0 +1,431 @@
+#VRML_SIM R2025a utf8
+# Saathi on the team's HiH rover: mecanum-style base, white shell with orange accents, mast with a face screen,
+# stereo RGB + depth head, 360° LiDAR, an IMU and a radio (Saathi Parivaar: robots share what they saw). A 22 kg physics body on four motor-driven mecanum wheels: the rollers are
+# modelled the way Webots models the KUKA youBot's, with friction turned 45° (materials "InteriorWheelMat" / "ExteriorWheelMat").
+# template language: javascript
+
+PROTO SaathiRover [
+  field SFVec3f    translation    0 0 0
+  field SFRotation rotation       0 0 1 0
+  field SFString   name           "saathi"
+  field SFString   controller     "saathi"
+  field MFString   controllerArgs []
+  field SFBool     supervisor     TRUE
+]
+{
+  %< const wheels = [["fl", 0.23, 0.255, "Exterior"], ["fr", 0.23, -0.255, "Interior"], ["rl", -0.23, 0.255, "Interior"], ["rr", -0.23, -0.255, "Exterior"]]; >%
+  Robot {
+    translation IS translation
+    rotation IS rotation
+    name IS name
+    controller IS controller
+    controllerArgs IS controllerArgs
+    supervisor IS supervisor
+    boundingObject Pose {
+      translation 0 0 0.24
+      children [
+        Box {
+          size 0.6 0.4 0.22
+        }
+      ]
+    }
+    physics Physics {
+      density -1
+      mass 22
+      centerOfMass [
+        0 0 0.2
+      ]
+    }
+    children [
+      Pose {
+        translation 0 0 0.17
+        children [
+          Shape {
+            appearance DEF DARK PBRAppearance {
+              baseColor 0.07 0.075 0.08
+              roughness 0.55
+              metalness 0
+            }
+            geometry Box {
+              size 0.56 0.36 0.12
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0 0 0.285
+        children [
+          Shape {
+            appearance DEF SHELL PBRAppearance {
+              baseColor 0.93 0.94 0.95
+              roughness 0.35
+              metalness 0
+            }
+            geometry Box {
+              size 0.64 0.44 0.11
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.27 0 0.335
+        rotation 0 1 0 0.45
+        children [
+          Shape {
+            appearance USE SHELL
+            geometry Box {
+              size 0.13 0.43 0.04
+            }
+          }
+        ]
+      }
+      Pose {
+        translation -0.04 0 0.352
+        children [
+          Shape {
+            appearance PBRAppearance {
+              baseColor 0.5 0.52 0.55
+              roughness 0.5
+              metalness 0
+            }
+            geometry Box {
+              size 0.4 0.32 0.025
+            }
+          }
+        ]
+      }
+      %< for (const s of [1, -1]) { >%
+      Pose {
+        translation -0.06 %<= s * 0.2215 >% 0.27
+        children [
+          Shape {
+            appearance DEF ORANGE PBRAppearance {
+              baseColor 1 0.42 0.05
+              emissiveColor 1 0.38 0.04
+              emissiveIntensity 1.5
+              roughness 0.4
+              metalness 0
+            }
+            geometry Box {
+              size 0.34 0.004 0.022
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.326 %<= s * 0.07 >% 0.265
+        rotation 0 1 0 1.5708
+        children [
+          Shape {
+            appearance DEF GLASS PBRAppearance {
+              baseColor 0.02 0.02 0.03
+              roughness 0.1
+              metalness 0
+            }
+            geometry Cylinder {
+              radius 0.022
+              height 0.01
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.3235 %<= s * 0.07 >% 0.265
+        rotation 0 1 0 1.5708
+        children [
+          Shape {
+            appearance DEF BLUE PBRAppearance {
+              baseColor 0.15 0.45 1
+              emissiveColor 0.2 0.5 1
+              emissiveIntensity 2
+              roughness 0.3
+              metalness 0
+            }
+            geometry Cylinder {
+              radius 0.029
+              height 0.006
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.326 %<= s * 0.15 >% 0.26
+        children [
+          Shape {
+            appearance USE BLUE
+            geometry Box {
+              size 0.004 0.012 0.05
+            }
+          }
+        ]
+      }
+      %< } >%
+      Pose {
+        translation 0.322 0 0.255
+        children [
+          Shape {
+            appearance USE DARK
+            geometry Box {
+              size 0.006 0.36 0.085
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.327 0 0.215
+        children [
+          Shape {
+            appearance USE ORANGE
+            geometry Box {
+              size 0.004 0.14 0.018
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.05 0 0.665
+        children [
+          Shape {
+            appearance DEF METAL PBRAppearance {
+              baseColor 0.78 0.8 0.83
+              roughness 0.3
+              metalness 0.2
+            }
+            geometry Box {
+              size 0.05 0.05 0.6
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.085 0 0.8
+        children [
+          Shape {
+            appearance USE DARK
+            geometry Box {
+              size 0.02 0.235 0.165
+            }
+          }
+        ]
+      }
+      Display {
+        translation 0.0962 0 0.8
+        rotation 0.5774 0.5774 0.5774 2.0944
+        name "face"
+        width 256
+        height 160
+        children [
+          Shape {
+            appearance PBRAppearance {
+              baseColorMap ImageTexture {
+              }
+              roughness 1
+              metalness 0
+            }
+            geometry Plane {
+              size 0.21 0.13
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.06 0 1.005
+        children [
+          Shape {
+            appearance PBRAppearance {
+              baseColor 0.32 0.34 0.37
+              roughness 0.4
+              metalness 0.2
+            }
+            geometry Box {
+              size 0.09 0.27 0.075
+            }
+          }
+        ]
+      }
+      %< for (const s of [1, -1]) { >%
+      Pose {
+        translation 0.107 %<= s * 0.075 >% 1.005
+        rotation 0 1 0 1.5708
+        children [
+          Shape {
+            appearance USE GLASS
+            geometry Cylinder {
+              radius 0.02
+              height 0.008
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.1055 %<= s * 0.075 >% 1.005
+        rotation 0 1 0 1.5708
+        children [
+          Shape {
+            appearance USE BLUE
+            geometry Cylinder {
+              radius 0.027
+              height 0.004
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.1065 0 %<= 1.005 + s * 0.035 >%
+        children [
+          Shape {
+            appearance USE BLUE
+            geometry Box {
+              size 0.003 0.26 0.005
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.1065 %<= s * 0.13 >% 1.005
+        children [
+          Shape {
+            appearance USE BLUE
+            geometry Box {
+              size 0.003 0.005 0.07
+            }
+          }
+        ]
+      }
+      %< } >%
+      Pose {
+        translation 0.05 0 1.08
+        children [
+          Shape {
+            appearance USE DARK
+            geometry Cylinder {
+              radius 0.055
+              height 0.07
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.05 0 1.085
+        children [
+          Shape {
+            appearance USE BLUE
+            geometry Cylinder {
+              radius 0.0565
+              height 0.008
+            }
+          }
+        ]
+      }
+      Pose {
+        translation -0.25 -0.16 0.52
+        children [
+          Shape {
+            appearance USE DARK
+            geometry Cylinder {
+              radius 0.007
+              height 0.34
+            }
+          }
+        ]
+      }
+      %< for (const [n, x, y, mat] of wheels) { >%
+      HingeJoint {
+        jointParameters HingeJointParameters {
+          axis 0 1 0
+          anchor %<= x >% %<= y >% 0.11
+        }
+        device [
+          RotationalMotor {
+            name %<= '"wheel_' + n + '"' >%
+            maxVelocity 25
+            maxTorque 12
+          }
+        ]
+        endPoint Solid {
+          translation %<= x >% %<= y >% 0.11
+          rotation 1 0 0 1.5708
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.05 0.05 0.05
+                roughness 0.9
+                metalness 0
+              }
+              geometry Cylinder {
+                radius 0.11
+                height 0.085
+              }
+            }
+            Shape {
+              appearance USE ORANGE
+              geometry Cylinder {
+                radius 0.078
+                height 0.087
+              }
+            }
+            Shape {
+              appearance USE DARK
+              geometry Cylinder {
+                radius 0.06
+                height 0.089
+              }
+            }
+          ]
+          name %<= '"wheel_' + n + '"' >%
+          contactMaterial %<= '"' + mat + 'WheelMat"' >%
+          boundingObject Cylinder {
+            radius 0.11
+            height 0.085
+          }
+          physics Physics {
+            density -1
+            mass 1
+          }
+        }
+      }
+      %< } >%
+      Camera {
+        translation 0.11 0 1.005
+        rotation 0 1 0 0.1
+        name "camera"
+        fieldOfView 1.047
+        width 640
+        height 480
+        near 0.05
+        antiAliasing TRUE
+      }
+      RangeFinder {
+        translation 0.11 0 1.005
+        rotation 0 1 0 0.1
+        name "depth"
+        fieldOfView 1.047
+        width 640
+        height 480
+        minRange 0.1
+        maxRange 15
+      }
+      Lidar {
+        translation 0.05 0 1.09
+        name "lidar"
+        horizontalResolution 360
+        fieldOfView 6.28318
+        numberOfLayers 1
+        minRange 0.1
+        maxRange 12
+      }
+      InertialUnit {
+        name "imu"
+      }
+      Emitter {
+        name "radio_tx"
+        range 40
+        channel 1
+      }
+      Receiver {
+        name "radio_rx"
+        channel 1
+      }
+    ]
+  }
+}

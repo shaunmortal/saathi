@@ -1,0 +1,13 @@
+# Big or machine-specific: copied or rebuilt by tools/setup_mac.sh
+out/
+models/
+.venv
+.venv-brain/
+mobileclip_blt.ts
+controllers/*/runtime.ini
+__pycache__/
+ppt/*_render/
+ppt/render_template/
+ppt/x/
+.DS_Store
+worlds/.*.wbproj

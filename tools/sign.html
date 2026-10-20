@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8">
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { display: grid; font-family: "Helvetica Neue", Arial, sans-serif; color: #fff; }
+  .sign { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 0 4vw; padding: 0 5vw; border: 1.2vh solid rgba(255,255,255,.85); box-sizing: border-box; }
+  .ico { width: 15vw; height: 15vw; border-radius: 2vw; background: #fff; display: grid; place-items: center; font: 800 9vw/1 "Helvetica Neue", Arial; }
+  .en { font-weight: 800; font-size: 11vw; letter-spacing: .02em; line-height: 1; }
+  .hi { font-family: "Kohinoor Devanagari", "Devanagari Sangam MN", sans-serif; font-weight: 700; font-size: 9vw; line-height: 1.15; }
+  .sub { font-size: 4.2vw; opacity: .9; font-weight: 600; margin-top: .6vh; }
+  .token { background: #0b0b0b; color: #ff3b30; font-family: Menlo, monospace; display: grid; place-content: center; text-align: center; border: 2vh solid #2a2a2a; }
+  .token .k { color: #ffb020; font-size: 7vw; font-family: "Kohinoor Devanagari", "Helvetica Neue"; font-weight: 700; }
+  .token .n { font-size: 19vw; font-weight: 700; letter-spacing: .06em; text-shadow: 0 0 2vw #ff3b30; }
+  .poster { background: #fffdf6; color: #173b5c; display: grid; place-content: center; text-align: center; gap: 3vh; padding: 6vw; border: 2vh solid #2f80c0; }
+  .poster .hi { font-size: 13vw; color: #173b5c; }
+  .poster .en { font-size: 9vw; color: #2f80c0; }
+  .poster .big { font-size: 40vw; line-height: 1; }
+</style>
+<body><script>
+const [kind, en, hi, color, sub, icon] = decodeURIComponent(location.hash.slice(1)).split("|");
+const d = document.createElement("div");
+if (kind === "caution") { d.className = "poster"; d.style.background = "#f6c400"; d.style.borderColor = "#1b1b1b"; d.style.color = "#111";
+  d.innerHTML = `<div class="big">⚠</div><div class="en" style="color:#111">CAUTION</div><div class="hi" style="color:#111">सावधान</div><div class="en" style="color:#111;font-size:8vw">WET FLOOR</div><div class="hi" style="color:#111;font-size:9vw">फर्श गीला है</div>`; }
+else if (kind === "token") { d.className = "token"; d.innerHTML = `<div class="k">टोकन TOKEN → ${sub}</div><div class="n">${en}</div>`; }
+else if (kind === "poster") { d.className = "poster"; d.innerHTML = `<div class="big">${icon}</div><div class="hi">${hi}</div><div class="en">${en}</div>`; }
+else { d.className = "sign"; d.style.background = color; d.innerHTML = `<div class="ico" style="color:${color}">${icon}</div><div><div class="en">${en}</div><div class="hi">${hi}</div><div class="sub">${sub}</div></div>`; }
+document.body.append(d);
+</script>
