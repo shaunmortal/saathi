@@ -66,6 +66,7 @@ def run(args):
     seed, social = args
     grid = Grid(SCENE["obstacles"])
     rng = np.random.default_rng(10_000 + seed)
+    assert not SCENE.get("floor2"), "scene.json is the two-floor demo world: run tools/make_world.py (defaults) first"
     name = list(SCENE["goals"])[int(rng.integers(len(SCENE["goals"])))]
     start, goal = tuple(SCENE["start"]), tuple(SCENE["goals"][name])
     walkers, pairs, standers = crowd(seed, grid, start, goal)

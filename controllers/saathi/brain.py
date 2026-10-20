@@ -245,9 +245,9 @@ class Reflex:
         th = wrap(th + max(-1.2, min(1.2, 2.2 * err)) * dt)
         nx = x + (self.v * math.cos(th) - vy * math.sin(th)) * dt
         ny = y + (self.v * math.sin(th) + vy * math.cos(th)) * dt
-        if self.g.inside_box(nx, ny, 0.25) or not (X0 + 0.3 < nx < X1 - 0.3 and Y0 + 0.3 < ny < Y1 - 0.3) or \
+        if (self.g.inside_box(nx, ny, 0.25) and not self.g.inside_box(x, y, 0.25)) or not (X0 + 0.3 < nx < X1 - 0.3 and Y0 + 0.3 < ny < Y1 - 0.3) or \
                 any(math.hypot(nx - px, ny - py) < 0.35 for px, py in (hard or ())):
-            nx, ny, self.v, self.next_plan = x, y, 0.0, t  # never drive into furniture; replan next step
+            nx, ny, self.v, self.next_plan = x, y, 0.0, t  # never drive into furniture; replan next step. Already in the margin: the path (from the nearest free cell) leads out
         self.status = ("Arrived" if arrived else "Safety stop: someone under 0.6 m" if guard else why or
                        (f"Sliding {'left' if want_off > 0 else 'right'} to let {dodge} pass" if dodge else "Going, keeping left"))
         return (nx, ny, th), guard, arrived

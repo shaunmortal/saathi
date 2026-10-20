@@ -18,18 +18,23 @@ import json, os, re, subprocess, sys, tempfile, time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CMDS = os.path.join(ROOT, "out", "live", "commands.jsonl")
 MODEL = os.path.join(ROOT, "models", "whisper_turbo_q4")
-HINT = "अस्पताल, ओपीडी, एक्स-रे, लैब, खून की जांच, दवाई, पर्ची, इमरजेंसी, वार्ड, लिफ्ट, मेरा बेटा खो गया, लाल टी-शर्ट, रुको"
+HINT = "अस्पताल, ओपीडी, एक्स-रे, लैब, खून की जांच, दवाई, पर्ची, इमरजेंसी, वार्ड, लिफ्ट, ब्लड बैंक, आईसीयू, मेरा बेटा खो गया, लाल टी-शर्ट, रुको"
 
 DEPTS = {  # where to go: the words people use for it
     "Radiology": ["एक्स-रे", "एक्सरे", "एक्स रे", "रेडियोलॉजी", "अल्ट्रासाउंड", "x-ray", "xray", "x ray", "radiology", "ultrasound"],
     "Lab": ["लैब", "खून", "ब्लड", "जांच", "जाँच", "टेस्ट", "सैंपल", "lab", "blood", "test", "sample", "khoon", "jaanch", "janch"],
     "Pharmacy": ["दवा", "दवाई", "दवाइयां", "दवाइयाँ", "फार्मेसी", "मेडिकल", "dawa", "dawai", "pharmacy", "medicine"],
     "Emergency": ["इमरजेंसी", "आपातकालीन", "emergency"],
-    "Wards & Lift": ["वार्ड", "लिफ्ट", "भर्ती", "ward", "lift"],
+    "Blood Bank": ["ब्लड बैंक", "ब्लडबैंक", "रक्तदान", "रक्त", "blood bank", "bloodbank", "raktdaan", "rakt"],
+    "ICU": ["आईसीयू", "आई सी यू", "आई.सी.यू", "icu"],
+    "OT": ["ऑपरेशन", "ओटी", "ओ टी", "operation", "surgery", "theatre"],
+    "Wards": ["वार्ड", "भर्ती", "ward", "wards", "admit"],
+    "Wards & Lift": ["लिफ्ट", "lift"],
     "Registration": ["पर्ची", "रजिस्ट्रेशन", "काउंटर", "parchi", "registration", "counter"],
 }
 DEPT_HI = {"Radiology": "एक्स-रे विभाग", "Lab": "लैब", "Pharmacy": "दवा की खिड़की", "Emergency": "इमरजेंसी",
-           "Wards & Lift": "वार्ड और लिफ्ट", "Registration": "पर्ची काउंटर"}
+           "Wards & Lift": "लिफ्ट", "Registration": "पर्ची काउंटर", "Blood Bank": "ब्लड बैंक, पहली मंज़िल पर", "ICU": "आई.सी.यू., पहली मंज़िल पर",
+           "OT": "ऑपरेशन थिएटर, पहली मंज़िल पर", "Wards": "वार्ड, पहली मंज़िल पर"}
 LOST = ["खो गया", "खो गयी", "खो गई", "खोया", "खो", "नहीं मिल रहा", "नहीं मिल रही", "गुम", "लापता", "kho gaya", "kho gayi", "kho", "lost", "missing"]
 STOP = ["रुको", "रुक जाओ", "रुकिए", "रुक", "ruko", "ruk", "stop"]
 HELLO = ["नमस्ते", "नमस्कार", "हेलो", "namaste", "hello", "hi"]
@@ -151,6 +156,7 @@ if __name__ == "__main__":
     first = understand("मेरी बेटी नहीं मिल रही")
     assert first["intent"] == "lost_ask" and understand("हरी फ्रॉक पहनी है", pending=first)["cmd"]["query"] == "a photo of a small girl in a green dress"
     assert understand("ruko")["intent"] == "stop" and understand("दवाई कहाँ है")["cmd"]["goal"] == "Pharmacy"
+    assert understand("blood bank kahan hai")["cmd"]["goal"] == "Blood Bank" and understand("khoon ki jaanch")["cmd"]["goal"] == "Lab" and understand("ICU le chalo")["cmd"]["goal"] == "ICU"
     if "--selftest" in sys.argv:
         sys.exit(0 if selftest() else 1)
     if "--text" in sys.argv:

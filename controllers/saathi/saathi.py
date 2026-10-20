@@ -22,6 +22,15 @@ os.makedirs(os.path.join(OUT, "blackbox"), exist_ok=True)
 scene = json.load(open(os.path.join(os.path.dirname(__file__), "scene.json")))
 LOST = scene.get("lost") if args.get("lost") == "1" else None  # Saathi Parivaar: a parent reports a lost child at REPORT s
 REPORT = float(args.get("report", 60))
+TOUR = [g for g in args.get("tour", "").split(",") if g]  # --tour=Pharmacy,Blood Bank,Lab: one trip after another, a word on each arrival
+F2 = scene.get("floor2")                                  # --floors=2 world: a lift and a first floor (Blood Bank, ICU, OT, Wards)
+GOAL_FLOOR = {**{g: 1 for g in scene["goals"]}, **({**{g: 1 for g in F2["goals1"]}, **{g: 2 for g in F2["goals"]}} if F2 else {})}
+if F2:
+    scene["goals"] = {**scene["goals"], **F2["goals1"], **F2["goals"]}
+if TOUR:
+    GOAL = TOUR[0]
+Z2 = F2["lift"]["z2"] if F2 else 0.0
+floor = 1
 ROBOT = int(args.get("robot", 1))            # which Saathi this is (Saathi Parivaar runs two)
 WORLD = ROBOT == 1                            # only Saathi-1's controller moves the crowd and the scripted people
 CHASE_ON = args.get("chase", "1") == "1"      # the chase camera follows this Saathi
@@ -61,6 +70,31 @@ def measured_pose():
     R = me.getOrientation()
     return x, y, math.atan2(R[3], R[0])
 chase = bot.getFromDef("CHASE")
+lift_t = bot.getFromDef("LIFT").getField("translation") if F2 else None
+ldoors = {f"{f}{n}": bot.getFromDef(f"LDOOR{f}_{n}").getField("translation") for f in "12" for n in "AB"} if F2 else {}
+
+
+def set_doors(fl, frac):
+    """Slide a floor's lift doors: frac 0 = closed, 1 = open (behind the front wall)."""
+    L, z = F2["lift"], (Z2 if fl == 2 else 0.0)
+    for n, y, sgn in (("A", L["door_y"][0], -1), ("B", L["door_y"][1], 1)):
+        ldoors[f"{fl}{n}"].setSFVec3f([L["door_x"], y + sgn * L["door_open"] * frac, z + 1.1])
+
+
+def lift_travel(u, from_floor):
+    """One step of a lift cycle that began u seconds ago on from_floor: doors close (1.5 s), cabin travels (6 s), doors open (1.5 s).
+    Returns the cabin height and True once the cycle is complete."""
+    z0, z1 = (0.0, Z2) if from_floor == 1 else (Z2, 0.0)
+    if u < 1.5:
+        set_doors(from_floor, 1 - u / 1.5); return z0, False
+    if u < 7.5:
+        e = (u - 1.5) / 6.0; return z0 + (z1 - z0) * e * e * (3 - 2 * e), False
+    set_doors(3 - from_floor, min(1.0, (u - 7.5) / 1.5))
+    return z1, u >= 9.0
+
+
+if F2:
+    set_doors(1, 1.0)
 ch_t, ch_r = chase.getField("translation"), chase.getField("rotation")
 
 WALK = 1.22  # m/s: walk.bvh's natural pace at 4 frames per 32 ms step, so feet don't slide (scaled people walk slower: scene.json)
@@ -68,9 +102,10 @@ walkers = []
 for wk in scene["walkers"]:
     node = bot.getFromDef(wk["name"])
     a, b = (np.array(p, float) for p in wk["path"])
-    walkers.append(dict(id=wk["name"], t=node.getField("translation"), r=node.getField("rotation"), a=a, b=b,
+    walkers.append(dict(id=wk["name"], t=node.getField("translation"), r=node.getField("rotation"), a=a, b=b, floor=wk.get("floor", 1), z=Z2 if wk.get("floor", 1) == 2 else 0.0,
                         L=float(np.linalg.norm(b - a)), s=0.0, dir=1, turn=0.0, pos=a.copy(), vel=np.zeros(2), v=wk.get("speed", WALK)))
 standers = {s["name"]: np.array(s["pos"], float) for s in scene["standers"]}
+stander_floor = {s["name"]: s.get("floor", 1) for s in scene["standers"]}
 
 
 class Actor:
@@ -128,10 +163,37 @@ FIND = GOAL[5:] if GOAL.startswith("find:") else None
 goal = None if FIND else tuple(float(v) for v in GOAL[3:].split(",")) if GOAL.startswith("at:") else tuple(scene["goals"][GOAL])
 SCAN_SPOTS = [(-7.6, 0.0), (-2.0, 1.0), (3.0, 1.0), (3.0, -2.0), (-3.0, -2.0)]  # where to look around if the thing is not in view
 found, sightings, scan_left, spot = None, [], 2 * math.pi, 0
-grid = Grid(scene["obstacles"])
+grid = grid1 = Grid(scene["obstacles"])
+grid2 = Grid(F2["obstacles"]) if F2 else None
 brain = Reflex(grid, social=(MODE == "saathi"))
 metrics = Metrics()
 eyes = namer = None
+lift_state, final_goal, lift_t0 = None, goal, 0.0  # None | "to_lift" (driving into the cabin) | "ride"
+lift_floor, call_t0 = 1, None                     # where the cabin is; when it was called to our floor
+
+
+def set_floor(n):
+    """Switch the map (and the camera's obstacle memory) to the floor the lift has brought us to."""
+    global grid, floor, memory
+    floor, grid = n, (grid2 if n == 2 else grid1)
+    brain.g = grid
+    if eyes:
+        from perception import ObstacleMemory
+        memory = ObstacleMemory(grid)
+
+
+def head_for(name):
+    """A new destination by name. On another floor: drive into the lift cabin first, the ride does the rest."""
+    global GOAL, goal, final_goal, lift_state
+    GOAL, final_goal = name, tuple(scene["goals"][name])
+    brain.path, brain.next_plan, brain.status = None, 0.0, "Going"
+    lift_state, goal = ("to_lift", tuple(F2["lift"]["cabin"])) if GOAL_FLOOR[name] != floor else (None, final_goal)
+    if lift_state and lift_floor != floor:  # the cabin is on the other floor: call it, wait in the lobby until its doors open
+        call_t0, goal = bot.getTime(), tuple(F2["lift"]["lobby"])
+
+
+if not FIND and GOAL in scene["goals"]:
+    head_for(GOAL)
 if PERCEPTION == "vision":
     from perception import Eyes, Namer, ObstacleMemory, depth_points, lidar_points
     eyes = Eyes(os.path.join(os.path.dirname(__file__), "..", "..", "models", "yolo11s.pt"), W, H, cam.getFov())
@@ -249,9 +311,9 @@ def obey(t, c):
         paused = False
         say(t, "Khula haath: phir chal raha hoon", snap=False)
     elif c["cmd"] == "goto" and c["goal"] in scene["goals"]:
-        paused, GOAL, goal = False, c["goal"], tuple(scene["goals"][c["goal"]])
-        brain.path, brain.next_plan = None, 0.0
-        say(t, f"Awaaz: {c['goal']} jaana hai. Chaliye, main le chalta hoon", snap=False)
+        paused = False
+        head_for(c["goal"])
+        say(t, f"Awaaz: {c['goal']} jaana hai. Chaliye, main le chalta hoon" + (" (lift se pehli manzil)" if lift_state else ""), snap=False)
     elif c["cmd"] == "lost" and LOST and lost["state"] is None:
         paused = False
         LOST.update(query=c["query"], said=c["said"], child=c.get("child", True))
@@ -446,7 +508,7 @@ def step_walker(w):
         w["s"] = min(max(w["s"], 0.0), w["L"]); w["dir"] *= -1; w["turn"] = 0.8
     u = (w["b"] - w["a"]) / w["L"]
     w["pos"], w["vel"] = w["a"] + u * w["s"], u * w["dir"] * w["v"]
-    w["t"].setSFVec3f([float(w["pos"][0]), float(w["pos"][1]), 0.0])
+    w["t"].setSFVec3f([float(w["pos"][0]), float(w["pos"][1]), w["z"]])
     w["r"].setSFRotation([0, 0, 1, math.atan2(w["vel"][1], w["vel"][0])])
 
 
@@ -532,7 +594,7 @@ while bot.step(DT_MS) != -1:
         def in_front(w):
             dx, dy = w["pos"][0] - pose[0], w["pos"][1] - pose[1]
             a = (math.atan2(dy, dx) - pose[2] + math.pi) % (2 * math.pi) - math.pi
-            return abs(a) < 0.45 and 2.5 < math.hypot(dx, dy) < 8 and not grid.inside_box(w["pos"][0], w["pos"][1], 0.6)
+            return w["floor"] == floor and abs(a) < 0.45 and 2.5 < math.hypot(dx, dy) < 8 and not grid.inside_box(w["pos"][0], w["pos"][1], 0.6)
         cand = sorted((w for w in walkers if in_front(w)), key=lambda w: math.hypot(w["pos"][0] - pose[0], w["pos"][1] - pose[1]))
         if cand:
             fallen_who = cand[0]
@@ -543,6 +605,7 @@ while bot.step(DT_MS) != -1:
             fallen_who["t"].setSFVec3f([0.0, 0.0, -10.0])
             walkers.remove(fallen_who)
             standers["fallen"] = np.array([fx, fy])
+            stander_floor["fallen"] = floor
             fall_log.write(json.dumps({"t": round(t, 2), "who": fallen_who["id"], "at": [round(float(fx), 2), round(float(fy), 2)]}) + "\n"); fall_log.flush()
     for w in walkers:
         if WORLD:
@@ -560,8 +623,8 @@ while bot.step(DT_MS) != -1:
     if LIVE and k % 10 == 0:
         for c in commands():
             obey(t, c)
-    people_true = [dict(id=w["id"], x=float(w["pos"][0]), y=float(w["pos"][1]), vx=float(w["vel"][0]), vy=float(w["vel"][1])) for w in walkers] + \
-                  [dict(id=n, x=float(p[0]), y=float(p[1]), vx=0.0, vy=0.0) for n, p in standers.items()] + \
+    people_true = [dict(id=w["id"], x=float(w["pos"][0]), y=float(w["pos"][1]), vx=float(w["vel"][0]), vy=float(w["vel"][1])) for w in walkers if w["floor"] == floor] + \
+                  [dict(id=n, x=float(p[0]), y=float(p[1]), vx=0.0, vy=0.0) for n, p in standers.items() if stander_floor[n] == floor] + \
                   [dict(id=n, x=float(a.pos[0]), y=float(a.pos[1]), vx=float(a.vel[0]), vy=float(a.vel[1])) for n, a in actors.items()]
     if eyes and k % 2 == 0:  # YOLO at ~15 Hz
         dm = depth_m()
@@ -569,7 +632,7 @@ while bot.step(DT_MS) != -1:
         boxes = eyes.see(fr, dm, pose, t)
         if LOST and k % 4 == 0:
             lost_see(t, fr, boxes, pose)
-        if memory.update(depth_points(dm, [b for _, b, _ in boxes], pose, eyes.f), eyes.people(t)) and t - last_event > 1.0:
+        if lift_state != "ride" and memory.update(depth_points(dm, [b for _, b, _ in boxes], pose, eyes.f), eyes.people(t)) and t - last_event > 1.0:
             seen = sorted(namer.look(frame_bgr(), dm, pose), key=lambda s: -s[1]) if namer else []
             near = [s for s in seen if min(math.hypot(s[2][0] - a, s[2][1] - b) for a, b in memory.points()) < 1.0]
             what = f"a {near[0][0]}" if near else "something"
@@ -628,9 +691,31 @@ while bot.step(DT_MS) != -1:
     if LOST and lost["state"] is None and t >= REPORT:
         lost_report(t, pose)
     hold = pose if paused else lost_step(t, pose) if LOST and lost["state"] else None  # stopped by voice, turning to look, or staying
+    if call_t0 is not None:  # the cabin is coming to our floor; Saathi heads for the lobby meanwhile
+        z, done_call = lift_travel(t - call_t0, lift_floor)
+        lift_t.setSFVec3f([F2["lift"]["cabin"][0], F2["lift"]["cabin"][1], z])
+        if done_call:
+            lift_floor, call_t0, goal = floor, None, tuple(F2["lift"]["cabin"])
+            brain.path, brain.next_plan = None, 0.0
+            if eyes:
+                set_floor(floor)  # forget the closed doors the camera saw
+            say(t, "Lift aa gayi, darwaze khule. Andar chalte hain", snap=False)
+    if lift_state == "ride":  # Saathi rides: carried kinematically with the cabin
+        u = t - lift_t0
+        z, done_ride = lift_travel(u, floor)
+        ride_status = "In the lift: doors closing" if u < 1.5 else f"In the lift: going {'up to the first floor' if floor == 1 else 'down to the ground floor'}" if u < 7.5 else "In the lift: doors opening"
+        if done_ride:
+            set_floor(3 - floor)
+            lift_floor, lift_state, goal = floor, None, final_goal
+            brain.path, brain.next_plan = None, 0.0
+            say(t, f"{'Pehli manzil' if floor == 2 else 'Bhootal'} aa gaya. {GOAL} is taraf hai, chaliye")
+        lift_t.setSFVec3f([F2["lift"]["cabin"][0], F2["lift"]["cabin"][1], z])
+        me.getField("translation").setSFVec3f([pose[0], pose[1], z]); me.resetPhysics()
+        if lift_state == "ride":
+            hold = pose
     if hold is not None:
         desired, guard, arrived = hold, False, False
-        brain.v, brain.status = 0.0, "Stopped: someone said \"Saathi, ruko\"" if paused else {"look": "Looking all around for the child", "stay": "Staying with the child until the father comes",
+        brain.v, brain.status = 0.0, "Stopped: someone said \"Saathi, ruko\"" if paused else ride_status if lift_state == "ride" else {"look": "Looking all around for the child", "stay": "Staying with the child until the father comes",
                                       "with_parent": "Staying with the father", "escort": "Waiting with the father near the child",
                                       "done": "Father and son are together"}.get(lost["state"], brain.status)
     elif goal is None:  # not found yet: turn on the spot and look; then try the next spot
@@ -654,18 +739,28 @@ while bot.step(DT_MS) != -1:
         if FIND and found is None and arrived:  # reached a look-around spot, still not found
             goal = None
             brain.path = None
+    if call_t0 is not None:
+        arrived = False  # waiting in the lobby is not an arrival
+    if lift_state == "to_lift" and arrived and hold is None:
+        lift_state, lift_t0, arrived = "ride", t, False
+        say(t, f"Lift mein hoon. {GOAL} {'pehli manzil' if GOAL_FLOOR[GOAL] == 2 else 'bhootal'} pe hai", snap=False)
     for n, (cx, cy), (sx, sy) in unmapped:  # did the robot drive into something that is not on its map?
-        if abs(pose[0] - cx) < sx / 2 + 0.25 and abs(pose[1] - cy) < sy / 2 + 0.25:
+        if floor == 1 and abs(pose[0] - cx) < sx / 2 + 0.25 and abs(pose[1] - cy) < sy / 2 + 0.25:
             unmapped_hit.add(n)
     metrics.update(t, pose, brain.v, people_true, true_pairs, guard)
     if arrived and arrived_at is None:
         arrived_at = t
+    if len(TOUR) > 1 and arrived_at is not None and t > arrived_at + 2.5 and GOAL == TOUR[0]:  # next stop of the tour
+        TOUR.pop(0)
+        head_for(TOUR[0])
+        arrived_at = None
+        say(t, f"Ab {TOUR[0]} chalte hain" + (" (lift se)" if lift_state else ""), snap=False)
     x, y, th = pose
     dx, dy = desired[0] - x, desired[1] - y  # what the brain wants this step, as a body velocity, to the motors
     drive((dx * math.cos(th) + dy * math.sin(th)) / DT, (-dx * math.sin(th) + dy * math.cos(th)) / DT,
           ((desired[2] - th + math.pi) % (2 * math.pi) - math.pi) / DT)
 
-    target = f"the {FIND}" if FIND else ("my post at the help desk" if GOAL.startswith("at:") else GOAL) if not (LOST and lost["state"]) else \
+    target = "the lift" if lift_state else f"the {FIND}" if FIND else ("my post at the help desk" if GOAL.startswith("at:") else GOAL) if not (LOST and lost["state"]) else \
         "where the child may be" if lost["state"] in ("search", "go") else "the father" if lost["state"] == "with_parent" else "the child"
     status = brain.status.replace("Arrived", f"Arrived at {target}").replace("Going,", f"Going to {target},")
     kind = status.split()[0]
@@ -685,9 +780,13 @@ while bot.step(DT_MS) != -1:
         want = np.clip(np.array([x, y]) - 3.6 * fwd + 1.6 * left, [-8.6, -5.6], [8.6, 5.6])  # stay inside the hall, not behind the glass doors
         chase_pos = want if chase_pos is None else chase_pos + (want - chase_pos) * 0.06
         look = np.array([x, y]) + 0.8 * fwd
-        ch_t.setSFVec3f([float(chase_pos[0]), float(chase_pos[1]), 2.2])
+        cam_z, cam_h = me.getPosition()[2] + 2.2, 2.2 - 0.6
+        if lift_state == "ride":  # stand in the lobby facing the doors: on the departure floor while they close, on the arrival floor as they open
+            chase_pos, look = np.array([5.4, 1.5]), np.array([7.5, 1.5])
+            cam_z, cam_h = (0.0 if (floor == 1) == (t - lift_t0 < 4.5) else Z2) + 1.5, 1.5 - 0.9
+        ch_t.setSFVec3f([float(chase_pos[0]), float(chase_pos[1]), cam_z])
         ch_r.setSFRotation(yaw_pitch_rotation(math.atan2(look[1] - chase_pos[1], look[0] - chase_pos[0]),
-                                              math.atan2(2.2 - 0.6, float(np.linalg.norm(look - chase_pos)))))
+                                              math.atan2(cam_h, float(np.linalg.norm(look - chase_pos)))))
 
     if EVERY > 0 and t + 1e-6 >= nxt:
         tag = f"{t:06.2f}"
@@ -703,7 +802,7 @@ while bot.step(DT_MS) != -1:
         nxt += EVERY
     if FIND and found is None:
         arrived_at = None
-    if not done and (t >= UNTIL or (arrived_at is not None and t > arrived_at + 3 and not LOST) or (LOST and lost.get("done_at") and t > lost["done_at"] + 3)):
+    if not done and (t >= UNTIL or (arrived_at is not None and t > arrived_at + 3 and not LOST and len(TOUR) <= 1) or (LOST and lost.get("done_at") and t > lost["done_at"] + 3)):
         summary = dict(mode=MODE, perception=PERCEPTION, goal=GOAL, fall_detected=fall_seen is not None, found=[round(v, 2) for v in found] if FIND and found else None, arrived=arrived_at is not None, time=round(arrived_at or t, 2),
                        near_misses=metrics.near, conversation_cuts=metrics.cuts, unmapped_hits=sorted(unmapped_hit), min_dist=round(metrics.min_d, 3), safety_stops=metrics.stops,
                        localization_error_median=round(float(np.median(loc_err)), 3) if loc_err else None,
