@@ -7,7 +7,7 @@ P = lambda *a: os.path.join(ROOT, *a)
 R = P("ppt", "Saathi_Round2_render", "Saathi_Round2_render.%03d.png")
 TMP = tempfile.mkdtemp(prefix="saathi_video_")
 FONT = "/System/Library/Fonts/Supplemental/Arial.ttf"
-VOICE = os.environ.get("VOICE", "en-IN-PrabhatNeural")
+VOICE = os.environ.get("VOICE", "en-IN-NeerjaNeural")
 
 SEGS = [  # (visual path | list of stills, start s, caption, narration)
     (R % 1, 0, "", "Saathi. A guide robot that reads Indian hospital crowds. Team Glitch, Hack in Hills twenty twenty-six, problem statement one."),
