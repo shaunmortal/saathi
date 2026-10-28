@@ -133,7 +133,7 @@ node(arch, 10.7, row1, 3.6, h, "SAFETY GUARD", "On LiDAR, below the AI: stop und
 node(arch, 14.9, row1, 4.5, h, "MOTORS", "Body velocity → 4 mecanum wheel speeds (physics)")
 node(arch, 0.6, row2, 3.3, h, "YOU", "Hindi voice · typing · hand gesture")
 node(arch, 4.5, row2, 5.6, h, "THINKING BRAIN", "Whisper (Hindi) + phrasebook · Qwen3.5-2B VLM describes scenes · Lekha voice", fill=MINT)
-node(arch, 10.7, row2, 3.6, h, "SHARED MEMORY", "Who each robot saw: where, when, clothes, height. Never a face.")
+node(arch, 10.7, row2, 3.6, h, "RADIO · SHARED MEMORY", "Robots talk to each other: who they saw, where they are, who searches where. Never a face.")
 node(arch, 14.9, row2, 4.5, h, "BLACK BOX", "Every decision + camera frame + reason. Replayable.")
 for x1, x2 in ((3.9, 4.5), (10.1, 10.7), (14.3, 14.9)):
     arrow(arch, x1, row1 + h / 2, x2, row1 + h / 2)
@@ -185,7 +185,7 @@ for i, (num, cap) in enumerate([(f"{TOUR['near_misses']}", "near-misses"), (f"{T
                                 ("4", "departments on 2 floors"), ("1", "fall handled on the way"), (f"{TOUR['time']:.0f} s", "entrance → Lab, all by itself")]):
     text(proto, 13.5 + (i % 2) * 2.9, 5.55 + (i // 2) * 1.1, 2.8, 1.0, [(num, 30, True, TEAL), para(cap, 12.5, space=0)])
 text(proto, 13.5, 8.72, 5.7, 0.4, [("NEW IN ROUND 2", 13, True, SAFFRON)])
-for i, s_ in enumerate(["Lift + first floor", "9 departments by voice", "Tour of departments", "Fall: VLM second opinion", "2 robots share memory", "Open source on GitHub"]):
+for i, s_ in enumerate(["Lift + first floor", "9 departments by voice", "Tour of departments", "Fall: VLM second opinion", "2 robots talk + share memory", "Open source on GitHub"]):
     pill(proto, 13.5 + (i % 2) * 2.9, 9.1 + (i // 2) * 0.44, 2.8, s_, fill=WHITE, size=11.5)
 
 # 6. RESULTS: 200 seeded crowds
@@ -225,9 +225,9 @@ for r, row in enumerate(rows_ab):
 set_title(parivaar, "SAATHI PARIVAAR: ROBOTS SHARE ONE MEMORY OF PEOPLE (BUILT, MEASURED)")
 clear_body(parivaar)
 picture(parivaar, P("docs", "parivaar_frame.jpg"), 0.6, 2.3, 9.8, 5.5)
-caption(parivaar, 0.6, 7.85, 9.8, "Two Saathis, one run: papa reports “laal t-shirt” at the help desk; Saathi-1 stays with him, Saathi-2 goes where the memory says the boy is now (orange glow).", 12)
+caption(parivaar, 0.6, 7.85, 9.8, "Two Saathis, one run: papa reports “laal t-shirt” at the help desk. The robots talk over radio (group chat, right): Saathi-1 stays with him, Saathi-2 goes where the memory says the boy is now (orange glow).", 12)
 for i, (head, body) in enumerate([("REMEMBER", "who each robot saw: where, when, height, clothes. No face."), ("ASK", "papa's words search every robot's memory"),
-                                  ("WHERE NOW?", "from his last motion; places already checked are ruled out"), ("SEARCH AS A TEAM", "robots split the places; one stays with papa")]):
+                                  ("WHERE NOW?", "from his last motion; places already checked are ruled out"), ("SEARCH AS A TEAM", "robots talk over radio, split the places; one stays with papa")]):
     x = 0.6 + i * 2.45
     card(parivaar, x, 8.5, 2.3, 1.9)
     text(parivaar, x + 0.12, 8.58, 2.1, 1.8, [(f"{i + 1}  {head}", 13, True, TEAL), para(body, 12, space=3)])
