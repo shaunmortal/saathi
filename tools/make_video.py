@@ -1,4 +1,4 @@
-"""Demo video from our own runs -> out/media/Saathi_demo.mp4 (1080p, ~2 min). Narration: macOS 'Rishi' (English, India) via `say`.
+"""Demo video from our own runs -> out/media/Saathi_demo.mp4 (1080p, ~2 min). Narration: Microsoft neural voice via edge-tts (VOICE=en-IN-PrabhatNeural by default; hi-IN-SwaraNeural for Hindi).
 Each segment = one visual (slide render, still, clip, GIF) + one sentence of narration; the segment lasts as long as the narration."""
 import os, subprocess, sys, tempfile
 
@@ -7,7 +7,7 @@ P = lambda *a: os.path.join(ROOT, *a)
 R = P("ppt", "Saathi_Round2_render", "Saathi_Round2_render.%03d.png")
 TMP = tempfile.mkdtemp(prefix="saathi_video_")
 FONT = "/System/Library/Fonts/Supplemental/Arial.ttf"
-VOICE = "Rishi"
+VOICE = os.environ.get("VOICE", "en-IN-PrabhatNeural")
 
 SEGS = [  # (visual path | list of stills, start s, caption, narration)
     (R % 1, 0, "", "Saathi. A guide robot that reads Indian hospital crowds. Team Glitch, Hack in Hills twenty twenty-six, problem statement one."),
@@ -38,9 +38,10 @@ def dur(path):
 
 
 def narrate(i, text):
-    aiff, wav = os.path.join(TMP, f"n{i}.aiff"), os.path.join(TMP, f"n{i}.wav")
-    run("say", "-v", VOICE, "-r", "175", "-o", aiff, text)
-    run("ffmpeg", "-y", "-i", aiff, "-ar", "44100", "-ac", "2", wav)
+    """Microsoft neural voice via edge-tts (needs network); VOICE e.g. en-IN-NeerjaNeural, en-IN-PrabhatNeural, hi-IN-SwaraNeural."""
+    mp3, wav = os.path.join(TMP, f"n{i}.mp3"), os.path.join(TMP, f"n{i}.wav")
+    run(sys.executable, "-m", "edge_tts", "--voice", VOICE, "--rate=-5%", "--text", text, "--write-media", mp3)
+    run("ffmpeg", "-y", "-i", mp3, "-ar", "44100", "-ac", "2", wav)
     return wav, dur(wav)
 
 
