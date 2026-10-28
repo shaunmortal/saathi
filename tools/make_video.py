@@ -27,6 +27,20 @@ SEGS = [  # (visual path | list of stills, start s, caption, narration)
 ]
 
 
+SHORT = "--short" in sys.argv  # 1-minute elevator pitch for LinkedIn / X
+if SHORT:
+    SEGS = [
+        (R % 1, 0, "", "Saathi: a guide robot that reads Indian hospital crowds."),
+        (R % 2, 0, "", "In big Indian O P Ds, seven in ten first-time patients need a person to find their way, and nurses leave their patients to show it."),
+        (P("out", "media", "dashboard.mp4"), 0, "On its own camera, depth and LiDAR", "Say mujhe X-ray karwana hai. Saathi walks you there at your pace, reading the crowd on its own camera and lidar, never cutting through a conversation."),
+        ("fall", 0, "A fall: alert the nurse, stay", "It spots a fall, alerts the nurse station, and stays with the patient."),
+        ([P("docs", "lift.gif"), P("docs", "floor2.gif")], 0, "Blood Bank is upstairs: it takes the lift", "Blood Bank upstairs? It takes the lift."),
+        (P("out", "media", "team4", "parivaar.mp4"), 40, "Two robots, one memory of people", "Two robots share one memory of people, clothes, never faces, so a lost child is found where he is now."),
+        (R % 6, 0, "", "Two hundred seeded crowds: seventy-three percent fewer near-misses, zero conversations cut."),
+        (R % 9, 0, "", "Open source, fully offline on a laptop. Team Glitch, Hack in Hills. Saathi: raasta bhi, saath bhi."),
+    ]
+
+
 def run(*cmd):
     r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     if r.returncode:
@@ -104,7 +118,7 @@ def segment(i, vis, start, cap, length):
 parts = []
 for i, (vis, start, cap, text) in enumerate(SEGS):
     wav, n = narrate(i, text)
-    length = n + 0.8
+    length = n + (0.4 if SHORT else 0.8)
     if vis == "fall":
         vis = fall_clip()
     v = segment(i, vis, start, cap, length)
@@ -115,6 +129,6 @@ for i, (vis, start, cap, text) in enumerate(SEGS):
     print(f"segment {i}: {length:.1f} s", flush=True)
 lst = os.path.join(TMP, "all.txt")
 open(lst, "w").write("".join(f"file '{p}'\n" for p in parts))
-final = P("out", "media", "Saathi_demo.mp4")
+final = P("out", "media", "Saathi_pitch_60s.mp4" if SHORT else "Saathi_demo.mp4")
 run("ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", lst, "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", final)
 print("wrote", final, f"{dur(final):.0f} s")
